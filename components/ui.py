@@ -65,11 +65,11 @@ def footer() -> None:
     st.markdown(
         """
         <div class="footer">
+           Desarrollado por Andrés Gordillo
             SIPCA IDEAD · Sistema Inteligente para la Planeación de la
             Cobertura Académica · Versión 1.1.0
             <br>
-            Desarrollado por Andrés Gordillo
-        </div>
+                    </div>
         """,
         unsafe_allow_html=True,
     )
