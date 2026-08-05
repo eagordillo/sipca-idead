@@ -1,8 +1,24 @@
+# Entorno virtual
 .venv/
+
+# Visual Studio Code
+.vscode/
+
+# Python
 __pycache__/
 *.py[cod]
+
+# Streamlit
 .streamlit/secrets.toml
-logs/*
+
+# Logs
+logs/
 !logs/.gitkeep
-reports/*
+
+# Reportes generados
+reports/
 !reports/.gitkeep
+
+# Archivos temporales
+*.log
+*.tmp
