@@ -5,11 +5,11 @@ from config import EXCEL_FILE
 from core.database import SIPCADatabase
 from services.reportes import SIPCAReports
 
-st.set_page_config(
-    page_title='Informes y exportaciones · SIPCA',
-    page_icon='📄',
-    layout='wide',
-)
+#st.set_page_config(
+    #page_title='Informes y exportaciones · SIPCA',
+    #page_icon='📄',
+    #layout='wide',
+#)
 apply_styles()
 
 

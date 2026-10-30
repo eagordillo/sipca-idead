@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+from core.program_rules import text_key
 from typing import Any
 import pandas as pd
 
@@ -86,3 +86,54 @@ class SIPCAQueries:
             .drop(columns="orden_estado")
             .reset_index(drop=True)
         )
+    
+    
+    def clasificacion_municipal(self, municipality: str) -> dict[str, pd.DataFrame]:
+        """Clasifica la oferta municipal y las oportunidades académicas."""
+
+        result = self.consulta_municipio(municipality)
+        portfolio = self.portafolio_municipal(municipality)
+
+        # Catálogo oficial de programas del IDEAD.
+        catalog = self.db.table("programas")
+
+        institutional_keys = set(
+            catalog["Nombre_oficial"].map(text_key)
+        )
+
+        institutional_ids = set(
+            catalog["Programa_id"].dropna().astype(str).str.strip()
+        )
+
+        # Oferta vigente en el municipio.
+        current_offer = result["oferta"].copy()
+
+        offered_keys = set(
+            current_offer["Nombre_oficial"].map(text_key)
+        )
+
+        # Programas del IDEAD pertinentes, sin oferta municipal.
+        relevant = portfolio.loc[
+            portfolio["Pertinente"].fillna(False).astype(bool)
+            & ~portfolio["Oferta vigente"].fillna(False).astype(bool)
+            & (
+                portfolio["Programa base"].map(text_key).isin(institutional_keys)
+                | portfolio["Programa_id"].astype(str).str.strip().isin(institutional_ids)
+            )
+            & ~portfolio["Programa base"].map(text_key).isin(offered_keys)
+        ].copy()
+
+        # Recomendaciones de programas externos al catálogo IDEAD.
+        recommendations = result["recomendaciones"].copy()
+
+        external = recommendations.loc[
+            ~recommendations["Programa base"]
+            .map(text_key)
+            .isin(institutional_keys)
+        ].copy()
+
+        return {
+            "oferta": current_offer,
+            "portafolio": relevant,
+            "recomendaciones": external,
+        }

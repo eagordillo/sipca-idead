@@ -6,11 +6,11 @@ from config import EXCEL_FILE
 from core.database import SIPCADatabase
 from services.dashboard import SIPCADashboard
 
-st.set_page_config(
-    page_title="Dashboard ejecutivo · SIPCA",
-    page_icon="📊",
-    layout="wide",
-)
+#st.set_page_config(
+    #page_title="Dashboard ejecutivo · SIPCA",
+    #page_icon="📊",
+    #layout="wide",
+#)
 apply_styles()
 
 

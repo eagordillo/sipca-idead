@@ -5,7 +5,7 @@ from config import EXCEL_FILE
 from core.database import SIPCADatabase
 from services.consultas import SIPCAQueries
 
-st.set_page_config(page_title="Consulta por programa · SIPCA", page_icon="🎓", layout="wide")
+#st.set_page_config(page_title="Consulta por programa · SIPCA", page_icon="🎓", layout="wide")
 apply_styles()
 
 
