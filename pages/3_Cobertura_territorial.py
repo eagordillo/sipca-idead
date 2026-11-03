@@ -1,7 +1,9 @@
+from html import escape
+
 import pydeck as pdk
 import streamlit as st
 
-from components.ui import apply_styles, footer, header
+from components.ui import apply_styles, footer, header, sidebar_info
 from config import EXCEL_FILE
 from core.database import SIPCADatabase
 from services.visualizaciones import SIPCAVisualizations
@@ -12,7 +14,7 @@ from services.visualizaciones import SIPCAVisualizations
     #layout="wide",
 #)
 apply_styles()
-
+sidebar_info(show_author=True)
 
 @st.cache_resource(show_spinner=False)
 def get_visualizations() -> SIPCAVisualizations:
@@ -135,30 +137,117 @@ else:
     )
     st.pydeck_chart(deck, use_container_width=True)
 
+    
     st.markdown("### Convenciones")
-    legend = map_data[[
-        "Estado territorial", "color"
-    ]].drop_duplicates("Estado territorial")
-    st.dataframe(
-        legend[["Estado territorial"]],
-        use_container_width=True,
-        hide_index=True,
+
+    legend = (
+        map_data[["Estado territorial", "color"]]
+        .drop_duplicates(subset=["Estado territorial"])
+        .sort_values("Estado territorial")
     )
 
+    legend_html = []
+
+    for _, item in legend.iterrows():
+        estado = str(item["Estado territorial"])
+        color = item["color"]
+
+        # Los colores del mapa se encuentran en formato RGB o RGBA.
+        if isinstance(color, (list, tuple)) and len(color) >= 3:
+            rgb = [int(c) for c in color[:3]]
+            color_css = f"rgb({rgb[0]}, {rgb[1]}, {rgb[2]})"
+        else:
+            color_css = "#808080"
+
+        legend_html.append(
+            '<div style="display:flex;align-items:center;'
+            'gap:10px;padding:7px 0;">'
+            f'<span style="display:inline-block;'
+            f'width:14px;height:14px;'
+            f'border-radius:50%;'
+            f'background-color:{color_css};'
+            f'border:1px solid #dfe3e8;'
+            f'flex-shrink:0;"></span>'
+            f'<span>{escape(estado)}</span>'
+            '</div>'
+        )
+
+    st.markdown(
+        '<div style="display:flex;flex-wrap:wrap;'
+        'column-gap:28px;row-gap:4px;'
+        'padding:12px 16px;'
+        'background-color:#ffffff;'
+        'border:1px solid #e1e4e9;'
+        'border-radius:10px;">'
+        + "".join(legend_html)
+        + '</div>',
+        unsafe_allow_html=True,
+    )
+
+
+    
+    
     st.markdown("### Detalle territorial")
+
+    columnas_base = [
+        "Nombre_cat",
+        "Municipio",
+        "Departamento",
+        "Región",
+        "Estado territorial",
+    ]
+
+    columnas_analisis = [
+        "Nivel de pertinencia",
+        "Nivel de prioridad",
+        "Énfasis territorial",
+    ]
+
+    # Los indicadores de pertinencia y prioridad
+    # corresponden a relaciones municipio-programa.
+    if program_filter is None:
+        columnas = columnas_base
+    else:
+        columnas = columnas_base + columnas_analisis
+
+    detalle = map_data[columnas].copy()
+
     st.dataframe(
-        map_data[[
-            "Nombre_cat",
-            "Municipio",
-            "Departamento",
-            "Región",
-            "Estado territorial",
-            "Nivel de pertinencia",
-            "Nivel de prioridad",
-            "Énfasis territorial",
-        ]],
+        detalle,
         use_container_width=True,
         hide_index=True,
+        column_config={
+            "Nombre_cat": st.column_config.TextColumn(
+                "Centro de Atención Tutorial",
+                width="large",
+            ),
+            "Municipio": st.column_config.TextColumn(
+                "Municipio",
+                width="medium",
+            ),
+            "Departamento": st.column_config.TextColumn(
+                "Departamento",
+                width="medium",
+            ),
+            "Región": st.column_config.TextColumn(
+                "Región",
+                width="medium",
+            ),
+            "Estado territorial": st.column_config.TextColumn(
+                "Estado territorial",
+                width="medium",
+            ),
+            "Nivel de pertinencia": st.column_config.TextColumn(
+                "Pertinencia",
+                width="medium",
+            ),
+            "Nivel de prioridad": st.column_config.TextColumn(
+                "Prioridad",
+                width="medium",
+            ),
+            "Énfasis territorial": st.column_config.TextColumn(
+                "Énfasis territorial",
+                width="large",
+            ),
+        },
     )
-
-footer()
