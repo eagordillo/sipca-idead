@@ -646,3 +646,42 @@ div[data-baseweb="input"] > div:focus-within {
         object-position: center;
     }
 }
+
+/* ============================================
+   SIPCA · PESTAÑAS EN DISPOSITIVOS MÓVILES
+   ============================================ */
+
+@media (max-width: 768px) {
+
+    .stTabs {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .stTabs [data-baseweb="tab-list"] {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        width: 100%;
+        max-width: 100%;
+        gap: 0.35rem;
+        padding-bottom: 0.4rem;
+        scrollbar-width: thin;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .stTabs [data-baseweb="tab"] {
+        flex: 0 0 auto !important;
+        min-width: max-content;
+        white-space: nowrap !important;
+        padding: 0.7rem 0.85rem;
+        font-size: 0.85rem;
+    }
+
+    .stTabs [data-baseweb="tab-panel"] {
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+    }
+}
