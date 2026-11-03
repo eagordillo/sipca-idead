@@ -107,22 +107,39 @@ else:
         line_width_min_pixels=1,
     )
 
+    
     tooltip = {
         "html": """
-        <b>{Nombre_cat}</b><br/>
-        Municipio: {Municipio}<br/>
-        Departamento: {Departamento}<br/>
-        Región: {Región}<br/>
-        Estado: {Estado territorial}<br/>
-        Pertinencia: {Nivel de pertinencia}<br/>
-        Prioridad: {Nivel de prioridad}<br/>
-        Énfasis: {Énfasis territorial}
+            <div style="
+                max-width: 240px;
+                box-sizing: border-box;
+                white-space: normal;
+                overflow-wrap: anywhere;
+                font-size: 12px;
+                line-height: 1.5;
+            ">
+                <strong>{Nombre_cat}</strong>
+                <div>Municipio: {Municipio}</div>
+                <div>Departamento: {Departamento}</div>
+                <div>Región: {Región}</div>
+                <div>Estado: {Estado territorial}</div>
+                <div>Pertinencia: {Nivel de pertinencia}</div>
+                <div>Prioridad: {Nivel de prioridad}</div>
+                <div>Énfasis: {Énfasis territorial}</div>
+            </div>
         """,
         "style": {
             "backgroundColor": "#174F32",
             "color": "white",
+            "borderRadius": "8px",
+            "padding": "8px",
+            "maxWidth": "220px",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere",
+            "pointerEvents": "none",
         },
     }
+
 
     deck = pdk.Deck(
         map_style=None,

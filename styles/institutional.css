@@ -341,3 +341,308 @@ div[data-baseweb="input"] > div:focus-within {
         font-size: 0.76rem;
     }
 }
+
+
+/* ============================================
+   SIPCA IDEAD · ADAPTACIÓN RESPONSIVE
+   Celulares y pantallas pequeñas
+   ============================================ */
+
+@media (max-width: 768px) {
+
+    /* Contenedor principal */
+
+    .block-container {
+        max-width: 100%;
+        padding: 0.75rem 0.8rem 2rem;
+    }
+
+    /* Encabezado institucional */
+
+    .sipca-header {
+        padding: 1rem 0.9rem 1.35rem;
+        border-radius: 14px;
+        margin-bottom: 1.1rem;
+    }
+
+    .sipca-branding {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.7rem;
+        padding-bottom: 0.9rem;
+        margin-bottom: 1rem;
+    }
+
+    .sipca-university-logo {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+    }
+
+    .sipca-university-logo img {
+        width: 100%;
+        max-width: 320px;
+        max-height: 85px;
+        object-fit: contain;
+        object-position: center;
+    }
+
+    .sipca-idead-logo img {
+        width: 72px;
+        height: 72px;
+        object-fit: contain;
+    }
+
+    .sipca-header-content {
+        text-align: center;
+    }
+
+    .institution-line {
+        font-size: 0.65rem;
+        letter-spacing: 0.06rem;
+        line-height: 1.5;
+    }
+
+    .sipca-header h1 {
+        font-size: clamp(1.3rem, 5vw, 1.65rem);
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+    }
+
+    .sipca-header p {
+        font-size: 0.87rem;
+        line-height: 1.5;
+    }
+
+    .sipca-author {
+        font-size: 0.75rem;
+        text-align: center;
+    }
+
+    /* Tarjetas de indicadores */
+
+    div[data-testid="stMetric"] {
+        min-height: 95px;
+        padding: 0.85rem 0.9rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(32, 37, 48, 0.04);
+    }
+
+    [data-testid="stMetricLabel"] {
+        font-size: 0.8rem;
+        line-height: 1.35;
+    }
+
+    [data-testid="stMetricValue"] {
+        font-size: clamp(1.2rem, 5vw, 1.7rem);
+        overflow-wrap: anywhere;
+    }
+
+    /* Pestañas con desplazamiento horizontal */
+
+    .stTabs [data-baseweb="tab-list"] {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        max-width: 100%;
+        gap: 0.25rem;
+        scrollbar-width: thin;
+    }
+
+    .stTabs [data-baseweb="tab"] {
+        flex-shrink: 0;
+        white-space: nowrap;
+        padding: 0.65rem 0.75rem;
+        font-size: 0.82rem;
+    }
+
+    /* Campos de selección */
+
+    div[data-testid="stSelectbox"],
+    div[data-testid="stMultiSelect"],
+    div[data-testid="stTextInput"] {
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    /* Tablas */
+
+    [data-testid="stDataFrame"] {
+        width: 100%;
+        max-width: 100%;
+        border-radius: 9px;
+    }
+
+    /* Avisos */
+
+    [data-testid="stAlert"] {
+        font-size: 0.85rem;
+        border-radius: 9px;
+    }
+
+    /* Estado del modelo */
+
+    .sipca-model-status {
+        padding: 0.8rem;
+        font-size: 0.82rem;
+        gap: 0.5rem;
+    }
+
+    /* Pie de página */
+
+    .footer {
+        margin-top: 2rem;
+        padding: 1rem 0.5rem;
+        font-size: 0.75rem;
+        line-height: 1.6;
+    }
+}
+
+/* Pantallas especialmente estrechas */
+
+@media (max-width: 390px) {
+
+    .block-container {
+        padding-left: 0.55rem;
+        padding-right: 0.55rem;
+    }
+
+    .sipca-header {
+        padding-left: 0.7rem;
+        padding-right: 0.7rem;
+    }
+
+    .sipca-university-logo img {
+        max-width: 270px;
+    }
+
+    .sipca-idead-logo img {
+        width: 62px;
+        height: 62px;
+    }
+
+    .sipca-header h1 {
+        font-size: 1.3rem;
+    }
+
+    div[data-testid="stMetric"] {
+        padding: 0.7rem;
+    }
+}
+
+/* SIPCA · Encabezado compacto para celulares */
+
+@media (max-width: 768px) {
+
+    .sipca-header {
+        padding: 0.75rem 0.9rem 1.15rem;
+        margin-bottom: 0.8rem;
+        border-radius: 12px;
+    }
+
+    .sipca-branding {
+        gap: 0.4rem;
+        padding-bottom: 0.6rem;
+        margin-bottom: 0.65rem;
+    }
+
+    .sipca-university-logo img {
+        max-width: 270px;
+        max-height: 65px;
+    }
+
+    .sipca-idead-logo img {
+        width: 55px;
+        height: 55px;
+    }
+
+    .institution-line {
+        font-size: 0.6rem;
+        margin-bottom: 0.35rem;
+        letter-spacing: 0.04rem;
+    }
+
+    .sipca-header h1 {
+        font-size: 1.35rem;
+        line-height: 1.2;
+    }
+
+    .sipca-header p {
+        margin-top: 0.4rem;
+        font-size: 0.82rem;
+        line-height: 1.4;
+    }
+
+    .sipca-header::after {
+        height: 5px;
+    }
+}
+
+/* SIPCA · Corrección de logotipos en dispositivos móviles */
+
+@media (max-width: 768px) {
+
+    .sipca-header {
+        overflow: visible;
+    }
+
+    .sipca-branding {
+        width: 100%;
+        align-items: center;
+        overflow: visible;
+    }
+
+    .sipca-university-logo {
+        width: 100%;
+        min-width: 0;
+        overflow: visible;
+    }
+
+    .sipca-university-logo img {
+        display: block;
+        width: 100%;
+        max-width: 310px;
+        max-height: none;
+        height: auto;
+        object-fit: contain;
+        object-position: center;
+        margin: 0 auto;
+    }
+
+    .sipca-idead-logo img {
+        width: 58px;
+        height: 58px;
+        object-fit: contain;
+    }
+
+    .sipca-header::after {
+        border-radius: 0 0 12px 12px;
+    }
+}
+/* Separación del encabezado respecto a la barra móvil */
+
+@media (max-width: 768px) {
+
+    .block-container {
+        padding-top: 2.5rem !important;
+    }
+
+    .sipca-header {
+        overflow: hidden;
+    }
+
+    .sipca-branding {
+        padding-top: 0.5rem;
+    }
+
+    .sipca-university-logo img {
+        width: 100%;
+        max-width: 310px;
+        height: auto;
+        max-height: none;
+        object-fit: contain;
+        object-position: center;
+    }
+}
