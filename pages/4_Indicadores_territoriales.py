@@ -1,7 +1,7 @@
 import plotly.express as px
 import streamlit as st
 
-from components.ui import apply_styles, footer, header
+from components.ui import apply_styles, footer, header, sidebar_info
 from config import EXCEL_FILE
 from core.database import SIPCADatabase
 from services.visualizaciones import SIPCAVisualizations
@@ -12,6 +12,7 @@ from services.visualizaciones import SIPCAVisualizations
     #layout="wide",
 #)
 apply_styles()
+sidebar_info(show_author=True)
 
 
 @st.cache_resource(show_spinner=False)

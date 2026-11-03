@@ -317,3 +317,27 @@ div[data-baseweb="input"] > div:focus-within {
 .sipca-model-status strong {
     color: #ad0017;
 }
+
+/* Autoría del sistema */
+
+.sipca-author {
+    margin-top: 14px;
+    padding-top: 10px;
+    border-top: 1px solid #e8e8ec;
+    color: #68717e;
+    font-size: 0.82rem;
+    line-height: 1.5;
+}
+
+.sipca-author strong {
+    color: #30343d;
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .sipca-author {
+        margin-top: 10px;
+        padding-top: 8px;
+        font-size: 0.76rem;
+    }
+}

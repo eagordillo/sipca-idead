@@ -14,7 +14,7 @@ from core.database import SIPCADatabase, SIPCADataError
 #)
 
 apply_styles()
-sidebar_info()
+sidebar_info(show_author=False)
 
 
 @st.cache_resource(show_spinner=False)
@@ -25,7 +25,9 @@ def get_database() -> SIPCADatabase:
 header(
     "SIPCA IDEAD",
     "Sistema Inteligente para la Planeación de la Cobertura Académica",
+    show_author=True,
 )
+    
 
 try:
     db = get_database()

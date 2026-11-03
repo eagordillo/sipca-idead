@@ -1,12 +1,13 @@
 import streamlit as st
 
-from components.ui import apply_styles, footer, header
+from components.ui import apply_styles, footer, header, sidebar_info
 from config import EXCEL_FILE
 from core.database import SIPCADatabase
 from services.consultas import SIPCAQueries
 
 #st.set_page_config(page_title="Consulta por municipio · SIPCA", page_icon="📍", layout="wide")
 apply_styles()
+sidebar_info(show_author=True)
 
 
 @st.cache_resource(show_spinner=False)

@@ -1,6 +1,6 @@
 import streamlit as st
 
-from components.ui import apply_styles, footer, header
+from components.ui import apply_styles, footer, header, sidebar_info
 from config import EXCEL_FILE
 from core.database import SIPCADatabase
 from services.reportes import SIPCAReports
@@ -11,6 +11,7 @@ from services.reportes import SIPCAReports
     #layout='wide',
 #)
 apply_styles()
+sidebar_info(show_author=True)
 
 
 @st.cache_resource(show_spinner=False)
