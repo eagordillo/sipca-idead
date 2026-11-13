@@ -33,7 +33,6 @@ selected = st.selectbox(
 if selected:
     result = queries.consulta_programa(selected)
     offer = result["oferta"]
-    recommendations = result["recomendaciones"]
     opportunities = queries.ranking_oportunidades_programa(selected)
 
     c1, c2, c3 = st.columns(3)
@@ -46,10 +45,9 @@ if selected:
         "y los municipios recomendados donde el programa aún no se oferta."
     )
 
-    tab_offer, tab_opportunities, tab_recommendations = st.tabs([
+    tab_offer, tab_opportunities = st.tabs([
         "Oferta vigente",
         "Oportunidades de ampliación",
-        "Recomendaciones relacionadas",
     ])
 
     with tab_offer:
@@ -57,7 +55,18 @@ if selected:
             st.info("El programa no registra oferta vigente en los CAT analizados.")
         else:
             st.dataframe(
-                offer[["Nombre_cat", "Municipio de oferta", "Modalidad", "Estado_oferta"]],
+                offer[[
+                    "Nombre_cat",
+                    "Municipio de oferta",
+                    "Modalidad",
+                    "Estado_oferta",
+                ]],
+                column_config={
+                    "Nombre_cat": "CAT",
+                    "Municipio de oferta": "Municipio",
+                    "Modalidad": "Modalidad",
+                    "Estado_oferta": "Estado de la oferta",
+                },
                 use_container_width=True,
                 hide_index=True,
             )
@@ -73,21 +82,6 @@ if selected:
                     "Modalidad sugerida", "TTI municipal 2025 (%)",
                     "Cobertura municipal 2025 (%)", "Bachilleres grado 11 (2025)",
                     "Justificación",
-                ]],
-                use_container_width=True,
-                hide_index=True,
-            )
-
-    with tab_recommendations:
-        if recommendations.empty:
-            st.info("No existen recomendaciones equivalentes registradas para este programa.")
-        else:
-            st.dataframe(
-                recommendations[[
-                    "Municipio", "Departamento", "Programa base", "Énfasis territorial",
-                    "Nivel de prioridad", "Horizonte sugerido", "Modalidad recomendada",
-                    "Viabilidad institucional preliminar",
-                    "Justificación técnica Municipio–programa",
                 ]],
                 use_container_width=True,
                 hide_index=True,

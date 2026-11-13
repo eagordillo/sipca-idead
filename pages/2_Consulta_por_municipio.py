@@ -20,7 +20,7 @@ db = queries.db
 
 header(
     "Consulta por municipio",
-    "Qué programas se ofertan, cuáles son pertinentes y cuáles podrían incorporarse.",
+    "Oferta académica vigente, oportunidades de ampliación y propuestas de nuevos programas.",
 )
 
 municipalities = db.obtener_municipios()
@@ -54,13 +54,13 @@ if selected:
     c1.metric("CAT", len(result["cat"]))
     c2.metric("Programas ofertados", classification["oferta"]["Programa_id"].nunique())
     c3.metric("Portafolio territorial", portfolio["Programa base"].nunique())
-    c4.metric("Programas recomendados", recommendations["Programa base"].nunique())
+    c4.metric("Programas propuestos", recommendations["Programa base"].nunique())
     
     tab_profile, tab_offer, tab_portfolio, tab_recommendations, tab_indicators = st.tabs([
         "Perfil territorial",
         "Oferta vigente",
         "Portafolio territorial",
-        "Recomendaciones",
+        "Programas propuestos",
         "Indicadores",
     ])
 
@@ -114,21 +114,32 @@ if selected:
             )
 
     with tab_recommendations:
-        st.caption("Programas recomendados para el municipio que no forman " "parte del portafolio académico actual del IDEAD."
-    )
+        st.caption(
+            "Propuestas de nuevos programas académicos identificadas según "
+            "las características y necesidades del territorio. Su creación "
+            "está sujeta a estudios de viabilidad y aprobación institucional."
+        )
+
         if recommendations.empty:
-            st.info("No existen programas recomendados registrados.")
+            st.info(
+                "No se registran propuestas de nuevos programas académicos "
+                "para este municipio."
+            )
         else:
             st.dataframe(
                 recommendations[[
-                    "Programa base", "Énfasis territorial", "Nivel de prioridad",
-                    "Horizonte sugerido", "Modalidad recomendada",
+                    "Programa base",
+                    "Énfasis territorial",
+                    "Nivel de prioridad",
+                    "Horizonte sugerido",
+                    "Modalidad recomendada",
                     "Viabilidad institucional preliminar",
                     "Justificación técnica Municipio–programa",
                 ]],
                 use_container_width=True,
                 hide_index=True,
             )
+            
 
     with tab_indicators:
         indicators = result["indicadores"]

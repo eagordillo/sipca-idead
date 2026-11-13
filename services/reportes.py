@@ -148,22 +148,42 @@ class SIPCAReports:
     ) -> Table | Paragraph:
         if dataframe.empty:
             return Paragraph('No existen registros disponibles.', self.styles['SIPCABody'])
+
         labels = labels or {}
         available = [column for column in columns if column in dataframe.columns]
-        data = [[Paragraph(f'<b>{escape(labels.get(c, c))}</b>', self.styles['SIPCASmall']) for c in available]]
+        if not available:
+            return Paragraph('No existen columnas disponibles.', self.styles['SIPCABody'])
+
+        header_style = ParagraphStyle(
+            name='SIPCATableHeader',
+            parent=self.styles['SIPCASmall'],
+            textColor=colors.white,
+            fontName='Helvetica-Bold',
+            fontSize=7,
+            leading=9,
+        )
+        body_style = ParagraphStyle(
+            name=f'SIPCATableBody_{font_size}',
+            parent=self.styles['SIPCASmall'],
+            fontSize=font_size,
+            leading=font_size + 2,
+        )
+        data = [[
+            Paragraph(escape(labels.get(column, column)), header_style)
+            for column in available
+        ]]
         for _, row in dataframe[available].iterrows():
             data.append([
-                Paragraph(escape(self._text(row[column])), ParagraphStyle(
-                    name=f'table_{font_size}', parent=self.styles['SIPCASmall'],
-                    fontSize=font_size, leading=font_size + 2,
-                ))
+                Paragraph(escape(self._text(row[column])), body_style)
                 for column in available
             ])
+
         if widths is not None:
             total_width = sum(widths)
             col_widths = [w / total_width * 25.8 * cm for w in widths]
         else:
             col_widths = [25.8 * cm / len(available)] * len(available)
+
         table = Table(data, colWidths=col_widths, repeatRows=1, hAlign='LEFT')
         table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), self.GREEN),
@@ -203,9 +223,21 @@ class SIPCAReports:
             rows.append((label + year, display))
         return rows
 
+    def _clasificacion_para_informe(self, municipality: str) -> tuple[pd.DataFrame, pd.DataFrame]:
+        """Usa la misma clasificación territorial que Consulta por municipio."""
+        classification = self.queries.clasificacion_municipal(municipality)
+        portfolio = classification['portafolio']
+        if 'Estado territorial' not in portfolio.columns:
+            raise KeyError('Falta Estado territorial en el portafolio municipal')
+        portfolio = portfolio.loc[
+            portfolio['Estado territorial'].astype(str).str.strip().str.casefold()
+            == 'pertinente sin oferta'
+        ].copy()
+        return portfolio, classification['recomendaciones']
+
     def pdf_municipio(self, municipality: str) -> bytes:
         result = self.queries.consulta_municipio(municipality)
-        portfolio = self.queries.portafolio_municipal(municipality)
+        portfolio, proposed = self._clasificacion_para_informe(municipality)
         municipality_row = result['municipio']
         buffer = BytesIO()
         doc = SimpleDocTemplate(
@@ -216,7 +248,7 @@ class SIPCAReports:
         story = self._cover(
             f'Informe territorial: {municipality}',
             f"{municipality_row.get('Departamento', '')} - {municipality_row.get('Región', '')}",
-            'Perfil, oferta vigente, portafolio territorial, recomendaciones e indicadores.',
+            'Perfil, oferta vigente, portafolio territorial, programas propuestos e indicadores.',
         )
         story.append(Paragraph('1. Síntesis territorial', self.styles['SIPCAH1']))
         if not result['perfil'].empty:
@@ -252,9 +284,9 @@ class SIPCAReports:
             widths=[4, 2.2, 2, 1.7, 3, 7], font_size=6.2,
         ))
 
-        story.append(Paragraph('4. Programas recomendados', self.styles['SIPCAH1']))
+        story.append(Paragraph('4. Programas propuestos', self.styles['SIPCAH1']))
         story.append(self._table(
-            result['recomendaciones'],
+            proposed,
             ['Programa base', 'Énfasis territorial', 'Nivel de prioridad', 'Horizonte sugerido', 'Modalidad recomendada', 'Viabilidad institucional preliminar', 'Justificación técnica Municipio–programa'],
             widths=[3.2, 2.8, 1.5, 1.5, 2, 2, 7], font_size=6.1,
         ))
@@ -288,7 +320,7 @@ class SIPCAReports:
         story = self._cover(
             f'Informe de cobertura y expansión',
             program,
-            'Oferta vigente, oportunidades de ampliación, recomendaciones y evidencia territorial.',
+            'Oferta vigente, oportunidades de ampliación y evidencia territorial.',
         )
         story.append(Paragraph('1. Oferta vigente', self.styles['SIPCAH1']))
         story.append(self._table(
@@ -305,14 +337,7 @@ class SIPCAReports:
             widths=[2.4, 2.2, 2, 2.3, 1.8, 1.5, 3, 1.6, 6], font_size=5.9,
         ))
 
-        story.append(Paragraph('3. Recomendaciones relacionadas', self.styles['SIPCAH1']))
-        story.append(self._table(
-            result['recomendaciones'],
-            ['Municipio', 'Departamento', 'Programa base', 'Énfasis territorial', 'Nivel de prioridad', 'Horizonte sugerido', 'Modalidad recomendada', 'Viabilidad institucional preliminar', 'Justificación técnica Municipio–programa'],
-            widths=[2, 2, 3, 2.8, 1.4, 1.5, 1.8, 1.8, 6], font_size=5.8,
-        ))
-
-        story.append(Paragraph('4. Fuentes registradas', self.styles['SIPCAH1']))
+        story.append(Paragraph('3. Fuentes registradas', self.styles['SIPCAH1']))
         story.append(self._table(
             self._source_table(), ['ID', 'Fuente', 'Tipo', 'URL'],
             widths=[1.4, 3, 2.5, 8], font_size=6.4,
@@ -390,7 +415,7 @@ class SIPCAReports:
 
     def excel_municipio(self, municipality: str) -> bytes:
         result = self.queries.consulta_municipio(municipality)
-        portfolio = self.queries.portafolio_municipal(municipality)
+        portfolio, proposed = self._clasificacion_para_informe(municipality)
         offer = result['oferta'].merge(
             result['cat'][['CAT_id', 'Nombre_cat']].drop_duplicates(),
             how='left', on='CAT_id',
@@ -401,7 +426,7 @@ class SIPCAReports:
             '02_PERFIL': result['perfil'],
             '03_OFERTA': offer,
             '04_PORTAFOLIO': portfolio,
-            '05_RECOMENDACIONES': result['recomendaciones'],
+            '05_PROGRAMAS_PROPUESTOS': proposed,
             '06_INDICADORES': result['indicadores'],
             '07_FUENTES': self._source_table(),
         }, f'Informe territorial - {municipality}')
@@ -414,6 +439,5 @@ class SIPCAReports:
             '01_PROGRAMA': program_df,
             '02_OFERTA': result['oferta'],
             '03_OPORTUNIDADES': opportunities,
-            '04_RECOMENDACIONES': result['recomendaciones'],
-            '05_FUENTES': self._source_table(),
+            '04_FUENTES': self._source_table(),
         }, f'Informe por programa - {program}')

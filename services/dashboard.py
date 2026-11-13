@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pandas as pd
 
+from core.program_rules import text_key
 from core.database import SIPCADatabase
 from services.consultas import SIPCAQueries
 
@@ -52,6 +53,34 @@ class SIPCADashboard:
             department,
         )
 
+    def _propuestas_filtradas(self, region=None, department=None) -> pd.DataFrame:
+        """Propuestas externas al catálogo IDEAD, según Consulta por municipio."""
+        frames = []
+        for _, municipality in self._municipalities(region, department).iterrows():
+            data = self.queries.clasificacion_municipal(municipality["Municipio"])["recomendaciones"].copy()
+            if not data.empty:
+                data["Municipio_id"] = municipality["Municipio_id"]
+                data["Municipio"] = municipality["Municipio"]
+                data["Departamento"] = municipality["Departamento"]
+                data["Región"] = municipality["Región"]
+                frames.append(data)
+        return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+
+    def propuestas_por_programa(self, region=None, department=None) -> pd.DataFrame:
+        data = self._propuestas_filtradas(region, department)
+        columns = ["Programa", "Municipios_propuestos", "Registros"]
+        if data.empty:
+            return pd.DataFrame(columns=columns)
+        data = data.copy()
+        data["Clave"] = data["Programa base"].map(text_key)
+        data = data.drop_duplicates(["Municipio_id", "Clave"])
+        return (data.groupby("Clave", as_index=False)
+                .agg(Programa=("Programa base", "first"),
+                     Municipios_propuestos=("Municipio_id", "nunique"),
+                     Registros=("Municipio_id", "size"))
+                [columns].sort_values(["Municipios_propuestos", "Programa"],
+                                      ascending=[False, True]).reset_index(drop=True))
+
     def resumen(
         self,
         region: str | None = None,
@@ -69,10 +98,8 @@ class SIPCADashboard:
         relevance = self.db.table("pertinencia")
         relevance = relevance[relevance["Municipio_id"].isin(municipality_ids)]
 
-        recommendations = self.db.table("recomendaciones")
-        recommendations = recommendations[
-            recommendations["Municipio_id"].isin(municipality_ids)
-        ]
+        recommendations = self._propuestas_filtradas(region, department)
+        relevant_without_offer = self._oportunidades_pertinentes(region, department)
 
         return {
             "programas": int(offer["Programa_id"].nunique()),
@@ -83,6 +110,8 @@ class SIPCADashboard:
             "ofertas": int(len(offer)),
             "pertinencias": int(len(relevance)),
             "recomendaciones": int(len(recommendations)),
+            "programas_pertinentes": int(relevant_without_offer["Programa"].nunique()),
+            "programas_propuestos": int(self.propuestas_por_programa(region, department)["Programa"].nunique()),
         }
 
     def cobertura_por_programa(
@@ -115,84 +144,64 @@ class SIPCADashboard:
             .reset_index(drop=True)
         )
 
+    def _oportunidades_pertinentes(self, region=None, department=None) -> pd.DataFrame:
+        """CAT sin oferta para programas IDEAD con pertinencia registrada."""
+        frames = []
+        for _, program in self.db.obtener_programas().iterrows():
+            data = self.queries.ranking_oportunidades_programa(program["Nombre_oficial"])
+            if data.empty:
+                continue
+            data = self._filter(data, region, department)
+            data = data[data["Estado territorial"].astype(str).str.casefold().isin(
+                ["pertinente sin oferta", "pertinente y recomendado"])]
+            if not data.empty:
+                data = data.copy()
+                data["Programa"] = program["Nombre_oficial"]
+                data["Programa_id"] = program["Programa_id"]
+                frames.append(data)
+        return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+
     def oportunidades_por_programa(
         self,
         region: str | None = None,
         department: str | None = None,
     ) -> pd.DataFrame:
-        rows: list[dict] = []
-
+        data = self._oportunidades_pertinentes(region, department)
+        rows = []
         for _, program in self.db.obtener_programas().iterrows():
-            name = program["Nombre_oficial"]
-            data = self.queries.ranking_oportunidades_programa(name)
-            data = self._filter(data, region, department)
-
-            if data.empty:
-                high_priority = 0
-                cat_count = 0
-                municipality_count = 0
-            else:
-                priority = data["Nivel de prioridad"].fillna("").astype(str)
-                high_priority = int(
-                    priority.str.casefold().str.startswith("alta").sum()
-                )
-                cat_count = int(data["CAT_id"].nunique())
-                municipality_count = int(data["Municipio_id"].nunique())
-
+            part = data[data["Programa_id"] == program["Programa_id"]] if not data.empty else pd.DataFrame()
+            priority = part["Nivel de prioridad"].fillna("").astype(str) if not part.empty else pd.Series(dtype=str)
             rows.append({
                 "Programa_id": program["Programa_id"],
-                "Programa": name,
-                "CAT_potenciales": cat_count,
-                "Municipios_potenciales": municipality_count,
-                "Prioridad_alta": high_priority,
+                "Programa": program["Nombre_oficial"],
+                "CAT_potenciales": int(part["CAT_id"].nunique()) if not part.empty else 0,
+                "Municipios_potenciales": int(part["Municipio_id"].nunique()) if not part.empty else 0,
+                "Prioridad_alta": int(priority.str.casefold().str.startswith("alta").sum()),
             })
-
-        return (
-            pd.DataFrame(rows)
-            .sort_values(
-                ["CAT_potenciales", "Prioridad_alta", "Programa"],
-                ascending=[False, False, True],
-            )
-            .reset_index(drop=True)
-        )
+        return pd.DataFrame(rows).sort_values(
+            ["CAT_potenciales", "Prioridad_alta", "Programa"],
+            ascending=[False, False, True]).reset_index(drop=True)
 
     def recomendaciones_por_municipio(
         self,
         region: str | None = None,
         department: str | None = None,
     ) -> pd.DataFrame:
-        data = self._filter(
-            self.db.table("recomendaciones"),
-            region,
-            department,
-        )
+        data = self._propuestas_filtradas(region, department)
         if data.empty:
             return pd.DataFrame(columns=[
                 "Municipio", "Departamento", "Región",
                 "Programas_recomendados", "Prioridad_alta",
             ])
-
-        data = data.assign(
-            es_alta=(
-                data["Nivel de prioridad"].fillna("").astype(str)
-                .str.casefold().str.startswith("alta").astype(int)
-            )
-        )
-        return (
-            data.groupby(
-                ["Municipio_id", "Municipio", "Departamento", "Región"],
-                as_index=False,
-            )
-            .agg(
-                Programas_recomendados=("Programa recomendado", "nunique"),
-                Prioridad_alta=("es_alta", "sum"),
-            )
-            .sort_values(
-                ["Programas_recomendados", "Prioridad_alta", "Municipio"],
-                ascending=[False, False, True],
-            )
-            .reset_index(drop=True)
-        )
+        data = data.copy()
+        data["Clave"] = data["Programa base"].map(text_key)
+        data["es_alta"] = data["Nivel de prioridad"].fillna("").astype(str).str.casefold().str.startswith("alta")
+        data = data.drop_duplicates(["Municipio_id", "Clave"])
+        return (data.groupby(["Municipio_id", "Municipio", "Departamento", "Región"], as_index=False)
+                .agg(Programas_recomendados=("Clave", "nunique"),
+                     Prioridad_alta=("es_alta", "sum"))
+                .sort_values(["Programas_recomendados", "Prioridad_alta", "Municipio"],
+                             ascending=[False, False, True]).reset_index(drop=True))
 
     def distribucion_pertinencia(
         self,
@@ -223,30 +232,22 @@ class SIPCADashboard:
         region: str | None = None,
         department: str | None = None,
     ) -> pd.DataFrame:
-        data = self._filter(
-            self.db.table("recomendaciones"),
-            region,
-            department,
-        )
+        data = self._propuestas_filtradas(region, department)
         if data.empty:
             return pd.DataFrame(columns=["Nivel de prioridad", "Recomendaciones"])
-
-        result = (
-            data.groupby("Nivel de prioridad", as_index=False)
-            .agg(Recomendaciones=("recomendacion_id", "nunique"))
-        )
-        result["orden"] = (
-            result["Nivel de prioridad"]
-            .map(self.PRIORITY_ORDER)
-            .fillna(99)
-        )
+        data = data.copy()
+        data["Clave"] = data["Programa base"].map(text_key)
+        data = data.drop_duplicates(["Municipio_id", "Clave"])
+        result = (data.groupby("Nivel de prioridad", as_index=False)
+                  .agg(Recomendaciones=("Clave", "size")))
+        result["orden"] = result["Nivel de prioridad"].map(self.PRIORITY_ORDER).fillna(99)
         return result.sort_values("orden").drop(columns="orden").reset_index(drop=True)
 
     def indicadores_clave(
         self,
         region: str | None = None,
         department: str | None = None,
-        year: int = 2024,
+        year: int | None = 2025,
     ) -> pd.DataFrame:
         municipalities = self._municipalities(region, department)
         municipality_ids = set(municipalities["Municipio_id"].dropna())
@@ -256,9 +257,12 @@ class SIPCADashboard:
         data["Valor"] = pd.to_numeric(data["Valor"], errors="coerce")
         data = data[
             data["Territorio_id"].isin(municipality_ids)
-            & data["Año"].eq(year)
+            & data["Año"].isin([2023, 2024, 2025])
             & data["Indicador_codigo"].isin(["TTI", "COBERTURA"])
         ]
+
+        if year is not None:
+            data = data[data["Año"].eq(year)]
 
         if data.empty:
             return data

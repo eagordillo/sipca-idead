@@ -57,13 +57,16 @@ m1.metric("Programas activos", summary["programas"])
 m2.metric("CAT", summary["cat"])
 m3.metric("Municipios del modelo", summary["municipios_catalogo"])
 m4.metric("Municipios con CAT", summary["municipios_con_cat"])
-m5.metric("Pertinencias", summary["pertinencias"])
-m6.metric("Recomendaciones", summary["recomendaciones"])
+m5.metric("Programas pertinentes sin oferta", summary["programas_pertinentes"])
+m6.metric("Programas propuestos", summary["programas_propuestos"])
 
 coverage = dashboard.cobertura_por_programa(
     selected_region, selected_department
 )
 opportunities = dashboard.oportunidades_por_programa(
+    selected_region, selected_department
+)
+proposed_programs = dashboard.propuestas_por_programa(
     selected_region, selected_department
 )
 recommendations = dashboard.recomendaciones_por_municipio(
@@ -112,12 +115,15 @@ with tab_summary:
             st.plotly_chart(figure, use_container_width=True)
 
     with right:
-        st.markdown("### Oportunidades de ampliación")
-        if opportunities.empty:
+        st.markdown("### Ampliación de programas existentes")
+        opportunities_visible = opportunities.loc[
+            opportunities["CAT_potenciales"] > 0
+        ].copy()
+        if opportunities_visible.empty:
             st.info("No existen oportunidades con los filtros seleccionados.")
         else:
             figure = px.bar(
-                opportunities.head(12),
+                opportunities_visible.head(12),
                 x="CAT_potenciales",
                 y="Programa",
                 orientation="h",
@@ -132,6 +138,19 @@ with tab_summary:
                 showlegend=False,
             )
             st.plotly_chart(figure, use_container_width=True)
+
+    st.markdown("### Programas propuestos para creación")
+    st.caption("Programas externos al catálogo vigente del IDEAD, agrupados por municipios con propuesta.")
+    if proposed_programs.empty:
+        st.info("No existen propuestas de creación para los filtros seleccionados.")
+    else:
+        figure = px.bar(
+            proposed_programs.head(15), x="Municipios_propuestos", y="Programa",
+            orientation="h", text_auto=True,
+            labels={"Municipios_propuestos": "Municipios con propuesta", "Programa": "Programa"},
+        )
+        figure.update_layout(yaxis={"categoryorder": "total ascending"}, showlegend=False)
+        st.plotly_chart(figure, use_container_width=True)
 
     left, right = st.columns(2)
 
@@ -153,9 +172,9 @@ with tab_summary:
             st.plotly_chart(figure, use_container_width=True)
 
     with right:
-        st.markdown("### Prioridad de las recomendaciones")
+        st.markdown("### Prioridad de los programas propuestos")
         if priority.empty:
-            st.info("No existen recomendaciones.")
+            st.info("No existen propuestas registradas.")
         else:
             figure = px.pie(
                 priority,
@@ -195,6 +214,10 @@ with tab_programs:
         detail = dashboard.queries.ranking_oportunidades_programa(
             selected_program
         )
+        if not detail.empty:
+            detail = detail[detail["Estado territorial"].astype(str).str.casefold().isin(
+                ["pertinente sin oferta", "pertinente y recomendado"]
+            )]
         if selected_region != "Todas":
             valid_departments = set(
                 municipalities.loc[
@@ -221,9 +244,9 @@ with tab_programs:
             )
 
 with tab_territories:
-    st.markdown("### Municipios con mayor número de recomendaciones")
+    st.markdown("### Municipios con mayor número de programas propuestos")
     if recommendations.empty:
-        st.info("No existen recomendaciones para los filtros seleccionados.")
+        st.info("No existen propuestas para los filtros seleccionados.")
     else:
         figure = px.bar(
             recommendations.head(15),
@@ -231,7 +254,7 @@ with tab_territories:
             y="Programas_recomendados",
             text_auto=True,
             hover_data=["Departamento", "Región", "Prioridad_alta"],
-            labels={"Programas_recomendados": "Programas recomendados"},
+            labels={"Programas_recomendados": "Propuestas registradas"},
         )
         figure.update_layout(xaxis_tickangle=-45)
         st.plotly_chart(figure, use_container_width=True)
@@ -242,39 +265,49 @@ with tab_territories:
         )
 
 with tab_indicators:
+    st.markdown("### Evolución de los indicadores educativos (2023–2025)")
     indicators = dashboard.indicadores_clave(
         selected_region,
         selected_department,
-        year=2024,
+        year=None,
     )
 
     if indicators.empty:
-        st.info(
-            "No existen indicadores municipales de 2024 "
-            "para los filtros seleccionados."
-        )
+        st.info("No existen indicadores municipales para 2023, 2024 o 2025 con los filtros seleccionados.")
     else:
         selected_indicator = st.radio(
             "Indicador",
             ["TTI", "COBERTURA"],
             horizontal=True,
         )
-        current = indicators[
+        current = indicators.loc[
             indicators["Indicador_codigo"] == selected_indicator
         ].copy()
+        current["Año"] = current["Año"].astype(int)
+        current = current.sort_values(["Municipio", "Año"])
 
-        figure = px.bar(
-            current,
-            x="Municipio",
-            y="Valor",
-            hover_data=["Departamento", "Región"],
-            labels={"Valor": "Porcentaje", "Municipio": "Municipio"},
-        )
-        figure.update_layout(
-            xaxis_tickangle=-45,
-            showlegend=False,
-        )
-        st.plotly_chart(figure, use_container_width=True)
-        st.dataframe(current, use_container_width=True, hide_index=True)
+        if current.empty:
+            st.info("No existen registros del indicador seleccionado para estos años.")
+        else:
+            figure = px.line(
+                current,
+                x="Año",
+                y="Valor",
+                color="Municipio",
+                markers=True,
+                hover_data=["Departamento", "Región"],
+                labels={"Valor": "Porcentaje (%)", "Año": "Año", "Municipio": "Municipio"},
+            )
+            figure.update_xaxes(tickmode="array", tickvals=[2023, 2024, 2025])
+            figure.update_layout(hovermode="x unified")
+            if current["Municipio"].nunique() == 1:
+                figure.update_layout(showlegend=False)
+                figure.update_traces(text=current["Valor"].map(lambda v: f"{v:.2f}%"), textposition="top center")
+            st.plotly_chart(figure, use_container_width=True)
+            st.dataframe(
+                current[["Municipio", "Departamento", "Indicador_nombre", "Año", "Valor", "Unidad"]],
+                use_container_width=True,
+                hide_index=True,
+            )
 
 footer()
