@@ -214,7 +214,7 @@ with tab_programs:
                     "Nombre_cat", "Municipio", "Departamento",
                     "Estado territorial", "Nivel de pertinencia",
                     "Nivel de prioridad", "Énfasis territorial",
-                    "Bachilleres grado 11 (2023)",
+                    "Bachilleres grado 11 (2025)",
                 ]],
                 use_container_width=True,
                 hide_index=True,

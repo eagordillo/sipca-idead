@@ -44,6 +44,7 @@ class SIPCADatabase:
         "indicadores": "09_INDICADORES",
         "fuentes": "10_FUENTES",
         "parametros": "11_PARAMETROS",
+        "indicadores_men": "12_INDICADORES MEN",
     }
 
     REQUIRED_COLUMNS = {
@@ -312,8 +313,21 @@ class SIPCADatabase:
             ["Departamento", "Municipio", "Programa recomendado"]
         ).reset_index(drop=True)
 
+    
     def oportunidades_por_programa(self, program: str) -> pd.DataFrame:
         """Proyecta pertinencia y recomendaciones sobre CAT sin oferta vigente."""
+        import unicodedata
+
+        def clave_territorial(valor: Any) -> str:
+            if pd.isna(valor):
+                return ""
+            texto = str(valor).strip().casefold()
+            texto = unicodedata.normalize("NFKD", texto)
+            return "".join(
+                caracter for caracter in texto
+                if not unicodedata.combining(caracter)
+            )
+
         program_id = self.resolver_programa(program)
         offer = self.oferta_por_programa(program_id)
         offered_cat = set(offer["CAT_id"].dropna().map(self._text))
@@ -330,7 +344,23 @@ class SIPCADatabase:
             for _, row in recommendations.iterrows()
             if self._text(row.get("Municipio_id"))
         }
-        candidate_municipalities = set(relevant_by_mun) | set(recommended_by_mun)
+
+        candidate_municipalities = (
+            set(relevant_by_mun) | set(recommended_by_mun)
+        )
+
+        # Indicadores municipales MEN 2025
+        indicadores_men = self._tables["indicadores_men"].copy()
+
+        indicadores_por_municipio = {}
+
+        for _, indicador in indicadores_men.iterrows():
+            clave = (
+                clave_territorial(indicador.get("Departamento")),
+                clave_territorial(indicador.get("Municipio")),
+            )
+
+            indicadores_por_municipio[clave] = indicador
 
         cats = self._tables["cat"].copy()
         cats = cats[
@@ -340,16 +370,41 @@ class SIPCADatabase:
         ]
 
         rows: list[dict[str, Any]] = []
+
         for _, cat_row in cats.iterrows():
             municipality_id = self._text(cat_row["Municipio_id"])
+
             rel = relevant_by_mun.get(municipality_id)
             rec = recommended_by_mun.get(municipality_id)
+
             if rel is not None and rec is not None:
                 status = "Pertinente y recomendado"
             elif rec is not None:
                 status = "Recomendado para apertura"
             else:
                 status = "Pertinente sin oferta"
+
+            clave = (
+                clave_territorial(cat_row.get("Departamento")),
+                clave_territorial(cat_row.get("Municipio")),
+            )
+
+            indicador = indicadores_por_municipio.get(clave)
+
+            tti_2025 = (
+                indicador.get("TTI 2025 (%)")
+                if indicador is not None else None
+            )
+
+            cobertura_2025 = (
+                indicador.get("T. Cobertura 2025 (%)")
+                if indicador is not None else None
+            )
+
+            bachilleres_2025 = (
+                indicador.get("Bachillres G11 -2025")
+                if indicador is not None else None
+            )
 
             rows.append({
                 "CAT_id": cat_row.get("CAT_id", ""),
@@ -358,39 +413,58 @@ class SIPCADatabase:
                 "Municipio": cat_row.get("Municipio", ""),
                 "Departamento": cat_row.get("Departamento", ""),
                 "Estado territorial": status,
-                "Nivel de pertinencia": rel.get("Nivel de pertinencia", "") if rel is not None else "",
-                "Nivel de prioridad": rec.get("Nivel de prioridad", "") if rec is not None else "",
-                "Énfasis territorial": rec.get("Énfasis territorial", "") if rec is not None else "",
+                "Nivel de pertinencia": (
+                    rel.get("Nivel de pertinencia", "")
+                    if rel is not None else ""
+                ),
+                "Nivel de prioridad": (
+                    rec.get("Nivel de prioridad", "")
+                    if rec is not None else ""
+                ),
+                "Énfasis territorial": (
+                    rec.get("Énfasis territorial", "")
+                    if rec is not None else ""
+                ),
                 "Modalidad sugerida": (
-                    rec.get("Modalidad recomendada", "") if rec is not None
-                    else rel.get("Modalidad sugerida", "") if rel is not None else ""
+                    rec.get("Modalidad recomendada", "")
+                    if rec is not None
+                    else rel.get("Modalidad sugerida", "")
+                    if rel is not None else ""
                 ),
-                "TTI municipal 2024 (%)": (
-                    rel.get("TTI municipal 2024 (%)", None) if rel is not None
-                    else rec.get("TTI municipal 2024 (%)", None) if rec is not None else None
-                ),
-                "Cobertura municipal 2024 (%)": (
-                    rel.get("Cobertura municipal 2024 (%)", None) if rel is not None
-                    else rec.get("Cobertura municipal 2024 (%)", None) if rec is not None else None
-                ),
-                "Bachilleres grado 11 (2023)": (
-                    rel.get("Bachilleres grado 11 (2023)", None) if rel is not None
-                    else rec.get("Bachilleres grado 11 (2023)", None) if rec is not None else None
-                ),
+                "TTI municipal 2025 (%)": tti_2025,
+                "Cobertura municipal 2025 (%)": cobertura_2025,
+                "Bachilleres grado 11 (2025)": bachilleres_2025,
                 "Justificación": (
-                    rec.get("Justificación técnica Municipio–programa", "") if rec is not None
-                    else rel.get("Justificación específica municipio–programa", "") if rel is not None else ""
+                    rec.get(
+                        "Justificación técnica Municipio–programa", ""
+                    )
+                    if rec is not None
+                    else rel.get(
+                        "Justificación específica municipio–programa", ""
+                    )
+                    if rel is not None else ""
                 ),
             })
 
         columns = [
-            "CAT_id", "Nombre_cat", "Municipio_id", "Municipio", "Departamento",
-            "Estado territorial", "Nivel de pertinencia", "Nivel de prioridad",
-            "Énfasis territorial", "Modalidad sugerida", "TTI municipal 2024 (%)",
-            "Cobertura municipal 2024 (%)", "Bachilleres grado 11 (2023)",
+            "CAT_id",
+            "Nombre_cat",
+            "Municipio_id",
+            "Municipio",
+            "Departamento",
+            "Estado territorial",
+            "Nivel de pertinencia",
+            "Nivel de prioridad",
+            "Énfasis territorial",
+            "Modalidad sugerida",
+            "TTI municipal 2025 (%)",
+            "Cobertura municipal 2025 (%)",
+            "Bachilleres grado 11 (2025)",
             "Justificación",
         ]
+
         return pd.DataFrame(rows, columns=columns)
+
 
     def portafolio_por_municipio(self, municipality: str) -> pd.DataFrame:
         """Integra oferta, pertinencia y recomendaciones para un municipio."""

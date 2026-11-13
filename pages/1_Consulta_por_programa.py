@@ -70,8 +70,8 @@ if selected:
                 opportunities[[
                     "Nombre_cat", "Municipio", "Departamento", "Estado territorial",
                     "Nivel de pertinencia", "Nivel de prioridad", "Énfasis territorial",
-                    "Modalidad sugerida", "TTI municipal 2024 (%)",
-                    "Cobertura municipal 2024 (%)", "Bachilleres grado 11 (2023)",
+                    "Modalidad sugerida", "TTI municipal 2025 (%)",
+                    "Cobertura municipal 2025 (%)", "Bachilleres grado 11 (2025)",
                     "Justificación",
                 ]],
                 use_container_width=True,

@@ -301,7 +301,7 @@ class SIPCAReports:
         story.append(Paragraph('2. Oportunidades de ampliación', self.styles['SIPCAH1']))
         story.append(self._table(
             opportunities,
-            ['Nombre_cat', 'Municipio', 'Departamento', 'Estado territorial', 'Nivel de pertinencia', 'Nivel de prioridad', 'Énfasis territorial', 'Bachilleres grado 11 (2023)', 'Justificación'],
+            ['Nombre_cat', 'Municipio', 'Departamento', 'Estado territorial', 'Nivel de pertinencia', 'Nivel de prioridad', 'Énfasis territorial', 'Bachilleres grado 11 (2025)', 'Justificación'],
             widths=[2.4, 2.2, 2, 2.3, 1.8, 1.5, 3, 1.6, 6], font_size=5.9,
         ))
 
